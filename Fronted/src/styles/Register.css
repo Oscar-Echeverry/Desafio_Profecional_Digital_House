@@ -1,0 +1,114 @@
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f2f4f8;
+  padding: 2rem;
+}
+
+.register-card {
+  background-color: #fff;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+.register-card h3 {
+  text-align: center;
+  color: #003366;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+.register-form .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.2rem;
+}
+
+.register-form .form-group label {
+  font-weight: 600;
+  color: #003366;
+  margin-bottom: 0.4rem;
+}
+
+.register-form input {
+  height: 45px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  transition: border 0.3s ease;
+}
+
+.register-form input:focus {
+  outline: none;
+  border-color: #0077cc;
+  box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.15);
+}
+
+.register-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.register-row .form-group {
+  flex: 1 1 48%;
+}
+.btn-submit {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 1.5rem auto 0; 
+  max-width: 200px;
+  width: 100%;
+  text-align: center;
+}
+
+.btn-submit:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  cursor: pointer;
+}
+
+.register-alert {
+  text-align: center;
+  background-color: #ecf0f1;
+  color: #2c3e50;
+  border: 1px solid #ccc;
+  padding: 0.8rem 1.2rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+input.error {
+  border-color: #e74c3c;
+}
+
+.error-text {
+  font-size: 0.8rem;
+  color: #e74c3c;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 576px) {
+  .register-row .form-group {
+    flex: 1 1 100%;
+  }
+
+  .btn-submit {
+    font-size: 0.95rem;
+  }
+}

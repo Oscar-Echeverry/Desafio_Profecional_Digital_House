@@ -1,0 +1,110 @@
+:root {
+  --primary: #4e73df;
+  --secondary: #1cc88a;
+  --warning: #f6c23e;
+  --info: #36b9cc;
+  --danger: #e74a3b;
+  --background: #f8f9fc;
+  --card-bg: #ffffff;
+  --text-dark: #343a40;
+  --text-light: #6c757d;
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --transition: all 0.3s ease;
+}
+
+body {
+  background-color: var(--background);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.config-card {
+  max-width: 850px;
+  margin: 2rem auto;
+  padding: 2.5rem;
+  border-radius: var(--border-radius);
+  background: var(--card-bg);
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.config-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.config-user-info img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid var(--primary);
+}
+
+.config-user-info h4 {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text-dark);
+}
+
+.config-user-info p {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+.config-section {
+  margin-bottom: 2rem;
+}
+
+.config-section h5 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--primary);
+  border-left: 4px solid var(--primary);
+  padding-left: 0.5rem;
+}
+
+.config-section form label {
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.config-section button {
+  margin-top: 0.5rem;
+  min-width: 160px;
+}
+
+hr {
+  border-top: 1px solid #dee2e6;
+}
+
+@media (max-width: 768px) {
+  .config-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .config-user-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .config-user-info img {
+    margin-bottom: 0.5rem;
+  }
+
+  .config-section button {
+    width: 100%;
+  }
+}

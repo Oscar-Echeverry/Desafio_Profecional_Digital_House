@@ -1,0 +1,112 @@
+.recommendations-fullwidth-container {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background-color: #DAE7F5; 
+  padding: 4rem 1rem;
+}
+
+.recommendations-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.recommendations-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #003366; 
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.recommendation-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.recommendation-card img {
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.recommendation-card:hover img {
+  transform: scale(1.03);
+}
+
+.recommendation-card .card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #003366;
+}
+
+.recommendation-card .card-text {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.recommendation-card .badge {
+  background-color: #0077CC;
+  font-size: 0.8rem;
+  padding: 0.3em 0.6em;
+  border-radius: 0.5rem;
+}
+
+.rating {
+  color: #f39c12;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.recommendation-card .btn-outline-primary {
+  border-radius: 2rem;
+  font-weight: 500;
+  padding: 0.4rem 1.2rem;
+  border-color: #0077CC;
+  color: #0077CC;
+  transition: all 0.3s ease;
+}
+
+.recommendation-card .btn-outline-primary:hover {
+  background-color: #0077CC;
+  color: white;
+  border-color: #0077CC;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .recommendations-title {
+    font-size: 2rem;
+  }
+
+  .recommendations-fullwidth-container {
+    padding: 3rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommendations-title {
+    font-size: 1.8rem;
+  }
+
+  .recommendation-card img {
+    height: 180px;
+  }
+}
