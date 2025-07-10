@@ -3,6 +3,7 @@ package com.Oscar.Proyecto_Final.service;
 import com.Oscar.Proyecto_Final.dto.CategoriaDTO;
 import com.Oscar.Proyecto_Final.model.Categoria;
 import com.Oscar.Proyecto_Final.repository.CategoriaRepository;
+import com.Oscar.Proyecto_Final.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +17,9 @@ import java.util.stream.Collectors;
 public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final ProductoRepository productoRepository;
     private final CloudinaryService cloudinaryService;
+
 
     public List<CategoriaDTO> listarTodas() {
         return categoriaRepository.findAll().stream()
@@ -25,6 +28,7 @@ public class CategoriaService {
                         .nombre(cat.getNombre())
                         .descripcion(cat.getDescripcion())
                         .imagen(cat.getImagen())
+                        .cantidadProductos(productoRepository.countByCategoriaId(cat.getId()))
                         .build())
                 .collect(Collectors.toList());
     }
