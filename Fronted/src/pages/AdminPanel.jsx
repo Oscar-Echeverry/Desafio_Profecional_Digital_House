@@ -2,14 +2,15 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/AdminPanel.module.css";
-import {FaUsers,FaTags,FaCogs, FaBoxOpen,FaTrash,FaPlus,FaCheck,FaTimes,FaUserShield,FaUserSlash
+import {
+  FaUsers, FaTags, FaCogs, FaBoxOpen, FaTrash, FaPlus, FaCheck, FaTimes, FaUserShield, FaUserSlash
 } from "react-icons/fa";
 
 const AdminPanel = () => {
   const [esMovil, setEsMovil] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: "", imagen: null });
+  const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: "", imagen: null, descripcion: "" });
   const [categoriaEditando, setCategoriaEditando] = useState(null);
   const [caracteristicas, setCaracteristicas] = useState([]);
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState({ nombre: "", icono: "" });
@@ -18,10 +19,14 @@ const AdminPanel = () => {
     nombre: "",
     descripcion: "",
     direccion: "",
+    ciudad: "",
     categoria: "",
-    caracteristicas: []
+    caracteristicas: [],
+    politicas: []
   });
   const [imagenesProducto, setImagenesProducto] = useState([]);
+  const [productoEditando, setProductoEditando] = useState(null);
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -42,6 +47,19 @@ const AdminPanel = () => {
       return;
     }
     cargarDatos();
+  }, []);
+
+  const fetchProductos = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/productos");
+      setProductos(response.data);
+    } catch (error) {
+      console.error("Error al obtener productos:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductos();
   }, []);
 
   const cargarDatos = async () => {
@@ -111,14 +129,103 @@ const AdminPanel = () => {
     cargarDatos();
   };
 
-  const crearProducto = async () => {
-    const formData = new FormData();
-    formData.append("producto", JSON.stringify(nuevoProducto));
-    imagenesProducto.forEach(img => formData.append("imagenes", img));
-    await axios.post("http://localhost:8080/api/productos", formData, config);
-    setNuevoProducto({ nombre: "", descripcion: "", direccion: "", categoria: "", caracteristicas: [] });
+  const guardarProducto = async () => {
+    try {
+      const formData = new FormData();
+      const productoData = modoEdicion ? {
+        ...nuevoProducto,
+        id: productoEditando.id
+      } : nuevoProducto;
+
+      const politicasTransformadas = productoData.politicas.map(p => ({
+        titulo: p.tipo || p.titulo,
+        descripcion: p.descripcion
+      }));
+
+      formData.append("producto", JSON.stringify({
+        ...productoData,
+        politicas: politicasTransformadas
+      }));
+
+      imagenesProducto.forEach(img => formData.append("imagenes", img));
+
+      if (modoEdicion) {
+        await axios.put(
+          `http://localhost:8080/api/productos/${productoEditando.id}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        alert("Producto actualizado correctamente");
+      } else {
+        await axios.post(
+          "http://localhost:8080/api/productos",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        alert("Producto creado correctamente");
+      }
+
+      // Resetear estados
+      setNuevoProducto({
+        nombre: "",
+        descripcion: "",
+        direccion: "",
+        ciudad: "",
+        categoria: "",
+        caracteristicas: [],
+        politicas: []
+      });
+      setImagenesProducto([]);
+      setProductoEditando(null);
+      setModoEdicion(false);
+      cargarDatos();
+
+    } catch (error) {
+      console.error("Error al guardar producto:", error.response?.data || error.message);
+      alert(`Hubo un error al guardar el producto: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const iniciarEdicionProducto = (producto) => {
+    setProductoEditando(producto);
+    setModoEdicion(true);
+    setNuevoProducto({
+      nombre: producto.nombre,
+      descripcion: producto.descripcion,
+      direccion: producto.direccion,
+      ciudad: producto.ciudad,
+      categoria: producto.categoria,
+      caracteristicas: [...producto.caracteristicas],
+      politicas: producto.politicas.map(p => ({
+        tipo: p.titulo,
+        descripcion: p.descripcion
+      }))
+    });
+  };
+
+  const cancelarEdicion = () => {
+    setModoEdicion(false);
+    setProductoEditando(null);
+    setNuevoProducto({
+      nombre: "",
+      descripcion: "",
+      direccion: "",
+      ciudad: "",
+      categoria: "",
+      caracteristicas: [],
+      politicas: []
+    });
     setImagenesProducto([]);
-    cargarDatos();
   };
 
   const eliminarCategoria = async (id) => {
@@ -142,7 +249,6 @@ const AdminPanel = () => {
     }
   };
 
-  //  Bloqueo para móviles
   if (esMovil) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
@@ -187,30 +293,17 @@ const AdminPanel = () => {
           ))}
         </tbody>
       </table>
+
       <h2><FaTags /> Categorías</h2>
-      <input
-        type="text"
-        value={nuevaCategoria.nombre}
-        onChange={e => setNuevaCategoria({ ...nuevaCategoria, nombre: e.target.value })}
-        placeholder="Nombre"
-      />
-      <input
-        type="text"
-        value={nuevaCategoria.descripcion}
-        onChange={e => setNuevaCategoria({ ...nuevaCategoria, descripcion: e.target.value })}
-        placeholder="Descripción"
-      />
-      <input
-        type="file"
-        onChange={e => setNuevaCategoria({ ...nuevaCategoria, imagen: e.target.files[0] })}
-      />
+      <input type="text" placeholder="Nombre" value={nuevaCategoria.nombre} onChange={e => setNuevaCategoria({ ...nuevaCategoria, nombre: e.target.value })} />
+      <input type="text" placeholder="Descripción" value={nuevaCategoria.descripcion} onChange={e => setNuevaCategoria({ ...nuevaCategoria, descripcion: e.target.value })} />
+      <input type="file" onChange={e => setNuevaCategoria({ ...nuevaCategoria, imagen: e.target.files[0] })} />
       <button onClick={crearCategoria}><FaPlus /> Crear</button>
+
       <div className={styles.categoriasGrid}>
         {categorias.map(cat => (
           <div key={cat.id} className={styles.categoriaCard}>
-            {cat.imagenUrl && (
-              <img src={cat.imagenUrl} alt={cat.nombre} className={styles.categoriaImagen} />
-            )}
+            {cat.imagenUrl && <img src={cat.imagenUrl} alt={cat.nombre} className={styles.categoriaImagen} />}
             <div className={styles.categoriaInfo}>
               <h3>{cat.nombre}</h3>
               <p>{cat.descripcion}</p>
@@ -223,73 +316,144 @@ const AdminPanel = () => {
         ))}
       </div>
 
-
       {categoriaEditando && (
-        <div style={{ marginTop: "20px" }}>
+        <div>
           <h3>Editar Categoría</h3>
-          <input
-            type="text"
-            value={categoriaEditando.nombre}
-            onChange={e => setCategoriaEditando({ ...categoriaEditando, nombre: e.target.value })}
-            placeholder="Nuevo nombre"
-          />
-          <input
-            type="text"
-            value={categoriaEditando.descripcion || ""}
-            onChange={e => setCategoriaEditando({ ...categoriaEditando, descripcion: e.target.value })}
-            placeholder="Descripción"
-          />
-          <input
-            type="file"
-            onChange={e => setCategoriaEditando({ ...categoriaEditando, imagen: e.target.files[0] })}
-          />
+          <input type="text" value={categoriaEditando.nombre} onChange={e => setCategoriaEditando({ ...categoriaEditando, nombre: e.target.value })} />
+          <input type="text" value={categoriaEditando.descripcion || ""} onChange={e => setCategoriaEditando({ ...categoriaEditando, descripcion: e.target.value })} />
+          <input type="file" onChange={e => setCategoriaEditando({ ...categoriaEditando, imagen: e.target.files[0] })} />
           <button onClick={editarCategoria}><FaCheck /> Guardar</button>
           <button onClick={() => setCategoriaEditando(null)}><FaTimes /> Cancelar</button>
         </div>
       )}
-      <div className={styles.grid}>
-        {caracteristicas.map(car => (
-          <div key={car.id} className={styles.card}>
-            <h3>{car.nombre}</h3>
-            <div className={styles.cardActions}>
-              <button onClick={() => eliminarCaracteristica(car.id)}><FaTrash /> Eliminar</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
 
       <h2><FaBoxOpen /> Productos</h2>
-      <input type="text" placeholder="Nombre" value={nuevoProducto.nombre} onChange={e => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })} />
-      <input type="text" placeholder="Descripción" value={nuevoProducto.descripcion} onChange={e => setNuevoProducto({ ...nuevoProducto, descripcion: e.target.value })} />
-      <input type="text" placeholder="Dirección" value={nuevoProducto.direccion} onChange={e => setNuevoProducto({ ...nuevoProducto, direccion: e.target.value })} />
-      <select value={nuevoProducto.categoria} onChange={e => setNuevoProducto({ ...nuevoProducto, categoria: e.target.value })}>
-        <option value="">Selecciona una categoría</option>
-        {categorias.map(cat => <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>)}
-      </select>
-      <div>
-        {caracteristicas.map(c => (
-          <label key={c.id}>
-            <input
-              type="checkbox"
-              value={c.nombre}
-              checked={nuevoProducto.caracteristicas.includes(c.nombre)}
-              onChange={e => {
-                const checked = e.target.checked;
-                setNuevoProducto(prev => ({
-                  ...prev,
-                  caracteristicas: checked
-                    ? [...prev.caracteristicas, c.nombre]
-                    : prev.caracteristicas.filter(n => n !== c.nombre)
-                }));
-              }}
-            />
-            {c.nombre}
-          </label>
-        ))}
+      <div className={styles.productoForm}>
+        <h3>{modoEdicion ? "Editar Producto" : "Crear Nuevo Producto"}</h3>
+
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={nuevoProducto.nombre}
+          onChange={e => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
+        />
+
+        <input
+          type="text"
+          placeholder="Descripción"
+          value={nuevoProducto.descripcion}
+          onChange={e => setNuevoProducto({ ...nuevoProducto, descripcion: e.target.value })}
+        />
+
+        <input
+          type="text"
+          placeholder="Dirección"
+          value={nuevoProducto.direccion}
+          onChange={e => setNuevoProducto({ ...nuevoProducto, direccion: e.target.value })}
+        />
+
+        <input
+          type="text"
+          placeholder="Ciudad"
+          value={nuevoProducto.ciudad}
+          onChange={e => setNuevoProducto({ ...nuevoProducto, ciudad: e.target.value })}
+        />
+
+        <select
+          value={nuevoProducto.categoria}
+          onChange={e => setNuevoProducto({ ...nuevoProducto, categoria: e.target.value })}
+        >
+          <option value="">Selecciona una categoría</option>
+          {categorias.map(cat => <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>)}
+        </select>
+
+        <div className={styles.caracteristicasContainer}>
+          <h4>Características</h4>
+          {caracteristicas.map(c => (
+            <label key={c.id}>
+              <input
+                type="checkbox"
+                value={c.nombre}
+                checked={nuevoProducto.caracteristicas.includes(c.nombre)}
+                onChange={e => {
+                  const checked = e.target.checked;
+                  setNuevoProducto(prev => ({
+                    ...prev,
+                    caracteristicas: checked
+                      ? [...prev.caracteristicas, c.nombre]
+                      : prev.caracteristicas.filter(n => n !== c.nombre)
+                  }));
+                }}
+              />
+              {c.nombre}
+            </label>
+          ))}
+        </div>
+
+        <div className={styles.politicasContainer}>
+          <h4>Políticas</h4>
+          {nuevoProducto.politicas.map((p, idx) => (
+            <div key={idx} className={styles.politicaItem}>
+              <select
+                value={p.tipo || p.titulo}
+                onChange={e => {
+                  const updated = [...nuevoProducto.politicas];
+                  updated[idx].tipo = e.target.value;
+                  setNuevoProducto({ ...nuevoProducto, politicas: updated });
+                }}
+              >
+                <option value="">Tipo</option>
+                <option value="Normas">Normas</option>
+                <option value="Salud y seguridad">Salud y seguridad</option>
+                <option value="Política de cancelación">Política de cancelación</option>
+              </select>
+              <input
+                type="text"
+                value={p.descripcion}
+                onChange={e => {
+                  const updated = [...nuevoProducto.politicas];
+                  updated[idx].descripcion = e.target.value;
+                  setNuevoProducto({ ...nuevoProducto, politicas: updated });
+                }}
+              />
+              <button
+                onClick={() => {
+                  const updated = nuevoProducto.politicas.filter((_, i) => i !== idx);
+                  setNuevoProducto({ ...nuevoProducto, politicas: updated });
+                }}
+              >
+                ❌
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => setNuevoProducto({
+              ...nuevoProducto,
+              politicas: [...nuevoProducto.politicas, { tipo: "", descripcion: "" }]
+            })}
+          >
+            ➕ Añadir política
+          </button>
+        </div>
+
+        <input
+          type="file"
+          multiple
+          onChange={e => setImagenesProducto(Array.from(e.target.files))}
+        />
+
+        <div className={styles.formActions}>
+          {modoEdicion ? (
+            <>
+              <button onClick={guardarProducto}><FaCheck /> Guardar Cambios</button>
+              <button onClick={cancelarEdicion}><FaTimes /> Cancelar</button>
+            </>
+          ) : (
+            <button onClick={guardarProducto}><FaPlus /> Crear Producto</button>
+          )}
+        </div>
       </div>
-      <input type="file" multiple onChange={e => setImagenesProducto(Array.from(e.target.files))} />
-      <button onClick={crearProducto}><FaPlus /> Crear Producto</button>
+
       <div className={styles.grid}>
         {productos.map(prod => (
           <div key={prod.id} className={styles.card}>
@@ -297,11 +461,11 @@ const AdminPanel = () => {
             <p>{prod.descripcion}</p>
             <div className={styles.cardActions}>
               <button onClick={() => eliminarProducto(prod.id)}><FaTrash /> Eliminar</button>
+              <button onClick={() => iniciarEdicionProducto(prod)}><FaCogs /> Editar</button>
             </div>
           </div>
         ))}
       </div>
-
     </div>
   );
 };

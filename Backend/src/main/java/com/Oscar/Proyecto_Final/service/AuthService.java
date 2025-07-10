@@ -12,6 +12,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
+
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -76,9 +78,14 @@ public class AuthService {
     public void enviarTokenResetPassword(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
+        Optional<PasswordResetToken> existente = passwordResetTokenRepository.findByToken(usuario.getId().toString());
+        existente.ifPresent(token -> {
+            System.out.println("Se eliminará el token existente: " + token.getToken());
+        });
         passwordResetTokenRepository.deleteByUsuario(usuario);
-
+        if (passwordResetTokenRepository.findByUsuario(usuario).isPresent()) {
+            throw new RuntimeException("No se pudo eliminar el token anterior");
+        }
         String token = UUID.randomUUID().toString();
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .token(token)
@@ -89,6 +96,7 @@ public class AuthService {
         passwordResetTokenRepository.save(resetToken);
         emailService.enviarResetPassword(email, token);
     }
+
 
     @Transactional
     public void resetearPassword(String token, String nuevaPassword) {

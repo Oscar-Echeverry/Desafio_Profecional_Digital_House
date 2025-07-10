@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -20,6 +21,7 @@ public class Producto {
     private String nombre;
     private String descripcion;
     private String direccion;
+    private String ciudad;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
@@ -43,4 +45,19 @@ public class Producto {
     public void prePersist() {
         this.fechaCreacion = LocalDateTime.now();
     }
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Politica> politicas;
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Valoracion> valoraciones;
+
+    public void actualizarPoliticas(List<Politica> nuevasPoliticas) {
+        this.politicas.clear();
+        if (nuevasPoliticas != null) {
+            nuevasPoliticas.forEach(p -> {
+                p.setProducto(this);
+                this.politicas.add(p);
+            });
+        }
+    }
+
 }

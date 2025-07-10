@@ -18,6 +18,7 @@ import Recuperar from './pages/Recuperar';
 import Resetear from './pages/Resetear';
 import ProductDetail from './components/ProductDetail';
 import ConfirmarCuenta from './pages/ConfirmarCuenta';
+import Reserva from './pages/ReservaForm';
 
 function isTokenExpired(token) {
   if (!token) return true;
@@ -35,7 +36,6 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Validar token al iniciar
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken && !isTokenExpired(storedToken)) {
@@ -48,7 +48,6 @@ function App() {
     setLoading(false);
   }, []);
 
-  // Obtener usuario con token válido
   useEffect(() => {
     const fetchUsuario = async () => {
       try {
@@ -59,7 +58,6 @@ function App() {
           const data = await res.json();
           setUsuario(data);
         } else {
-          // Si el token es inválido, limpiamos todo
           console.warn('Token inválido. Cerrando sesión.');
           localStorage.removeItem('token');
           localStorage.removeItem('email');
@@ -138,6 +136,10 @@ function App() {
               }
             />
             <Route path="/productos/:id" element={<ProductDetail />} />
+            <Route
+              path="/reservar/:id"
+              element={token ? <Reserva /> : <Navigate to="/login" />}
+            />
             <Route path="*" element={<h2>Página no encontrada</h2>} />
           </Routes>
         </main>
