@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+
 
 @Service
 @RequiredArgsConstructor
@@ -270,4 +272,96 @@ public class EmailService {
             throw new RuntimeException("Error al enviar correo de notificación de eliminación", e);
         }
     }
+    public void enviarConfirmacionReserva(String destino, String nombreUsuario, String nombreProducto,
+                                          LocalDate fechaInicio, LocalDate fechaFin) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);
+
+            String contenido = """
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Confirmación de Reserva - TripNest</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.05);padding:40px;">
+          <tr><td align="center" style="padding-bottom:30px;">
+            <h1 style="color:#2c3e50;font-size:24px;margin:0;">Reserva confirmada</h1>
+          </td></tr>
+          <tr><td style="color:#555555;font-size:16px;line-height:1.6;">
+            <p>Hola %s,</p>
+            <p>¡Tu reserva en <strong>%s</strong> ha sido confirmada exitosamente!</p>
+            <p><strong>Fecha de inicio:</strong> %s<br/>
+               <strong>Fecha de fin:</strong> %s</p>
+            <p>Gracias por confiar en TripNest. ¡Esperamos que disfrutes tu experiencia!</p>
+          </td></tr>
+          <tr><td align="center" style="padding-top:40px;color:#999999;font-size:12px;">
+            © 2025 TripNest. Todos los derechos reservados.
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>
+""".formatted(nombreUsuario, nombreProducto, fechaInicio.toString(), fechaFin.toString());
+
+            helper.setTo(destino);
+            helper.setSubject("Confirmación de tu reserva - TripNest");
+            helper.setText(contenido, true);
+            mailSender.send(mensaje);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Error al enviar correo de confirmación de reserva", e);
+        }
+    }
+    public void enviarCancelacionReserva(String destino, String nombreUsuario, String nombreProducto,
+                                         LocalDate fechaInicio, LocalDate fechaFin) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);
+
+            String contenido = """
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cancelación de Reserva - TripNest</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.05);padding:40px;">
+          <tr><td align="center" style="padding-bottom:30px;">
+            <h1 style="color:#dc3545;font-size:24px;margin:0;">Reserva cancelada</h1>
+          </td></tr>
+          <tr><td style="color:#555555;font-size:16px;line-height:1.6;">
+            <p>Hola %s,</p>
+            <p>Queremos confirmarte que tu reserva en <strong>%s</strong> ha sido cancelada.</p>
+            <p><strong>Fecha de inicio:</strong> %s<br/>
+               <strong>Fecha de fin:</strong> %s</p>
+            <p>Si no realizaste esta cancelación o tienes dudas, contáctanos cuanto antes.</p>
+          </td></tr>
+          <tr><td align="center" style="padding-top:40px;color:#999999;font-size:12px;">
+            © 2025 TripNest. Todos los derechos reservados.
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>
+""".formatted(nombreUsuario, nombreProducto, fechaInicio.toString(), fechaFin.toString());
+
+            helper.setTo(destino);
+            helper.setSubject("Tu reserva ha sido cancelada - TripNest");
+            helper.setText(contenido, true);
+            mailSender.send(mensaje);
+
+        } catch (MessagingException e) {
+            throw new RuntimeException("Error al enviar correo de cancelación de reserva", e);
+        }
+    }
+
 }

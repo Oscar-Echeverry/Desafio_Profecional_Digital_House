@@ -11,4 +11,5 @@ public class CategoriaDTO {
     private String nombre;
     private String imagen;
     private String descripcion;
+    private Long cantidadProductos;
 }

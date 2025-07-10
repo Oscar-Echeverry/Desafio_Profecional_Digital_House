@@ -47,7 +47,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/productos/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/productos/buscar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/productos/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/productos/categoria/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/productos/disponibles").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/productos/*/valoraciones").permitAll()
 
+                        // Endpoints de reservas
+                        .requestMatchers(HttpMethod.POST, "/api/reservas").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/reservas/producto/**").permitAll()
                         // Endpoints restringidos solo para rol ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

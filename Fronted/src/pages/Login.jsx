@@ -23,8 +23,10 @@ function Login({ setToken }) {
       const res = await loginUsuario(credentials);
       setToken(res.data.token);
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('usuarioId', res.data.id); 
       localStorage.setItem('email', res.data.email);
-      navigate('/'); // Redirigir al Home
+      setCredentials({ email: '', password: '' });
+      navigate('/'); 
     } catch (err) {
       setError('Correo o contraseña incorrectos');
       console.error(err);
