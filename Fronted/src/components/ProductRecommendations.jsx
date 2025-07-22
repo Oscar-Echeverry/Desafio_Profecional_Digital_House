@@ -5,7 +5,7 @@ import '../styles/ProductRecommendations.css';
 
 function ProductRecommendations({ productos }) {
   return (
-    <section id="recommendations-section" className="recommendations-fullwidth-container">
+    <section className="recommendations-fullwidth-container">
       <div className="recommendations-wrapper">
         <h2 className="recommendations-title">Recomendaciones</h2>
 

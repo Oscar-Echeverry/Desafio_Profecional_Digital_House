@@ -21,6 +21,7 @@ public class ReservaController {
     @PostMapping
     public ResponseEntity<ReservaResponseDTO> crear(@RequestBody ReservaRequestDTO dto,
                                                     @AuthenticationPrincipal UserDetails userDetails) {
+        System.out.println("✅ Entró al controlador de reserva");
         String email = userDetails.getUsername();
         return ResponseEntity.ok(reservaService.crearReservaDesdeEmail(dto, email));
     }

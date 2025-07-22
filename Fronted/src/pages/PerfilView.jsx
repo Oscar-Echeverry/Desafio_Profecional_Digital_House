@@ -13,10 +13,6 @@ import '../styles/PerfilView.css';
 import {
   FiEdit, FiSave, FiX, FiCamera, FiMail, FiUser, FiCalendar, FiTrash2
 } from 'react-icons/fi';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-
-const MySwal = withReactContent(Swal);
 
 function PerfilView() {
   const [perfil, setPerfil] = useState(null);
@@ -28,7 +24,6 @@ function PerfilView() {
   const [isLoading, setIsLoading] = useState(true);
   const [favoritos, setFavoritos] = useState([]);
   const [reservas, setReservas] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const navigate = useNavigate();
 
@@ -53,12 +48,6 @@ function PerfilView() {
         setReservas(reservasRes.data);
       } catch (err) {
         console.error('Error al cargar perfil, favoritos o reservas', err);
-        MySwal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo cargar la información del perfil',
-          confirmButtonColor: '#3085d6',
-        });
       } finally {
         setIsLoading(false);
       }
@@ -69,146 +58,44 @@ function PerfilView() {
   const handleEditar = () => setEditMode(true);
 
   const handleGuardar = async () => {
-    setIsProcessing(true);
     try {
       const res = await actualizarDatos(perfil.id, { nombre, apellido });
       setPerfil(res.data);
       setEditMode(false);
-      await MySwal.fire({
-        icon: 'success',
-        title: '¡Perfil actualizado!',
-        text: 'Tus datos se han guardado correctamente',
-        confirmButtonColor: '#3085d6',
-      });
     } catch (err) {
       console.error('Error al actualizar datos', err);
-      MySwal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: err.response?.data?.message || 'Error al actualizar los datos',
-        confirmButtonColor: '#3085d6',
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const handleImagenChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-
-    setIsProcessing(true);
-    setImagenPreview(URL.createObjectURL(file));
-    setImagenError(false);
-    
-    try {
-      const res = await cambiarImagen(perfil.id, file);
-      setPerfil(res.data);
-      await MySwal.fire({
-        icon: 'success',
-        title: '¡Foto actualizada!',
-        text: 'Tu foto de perfil se ha cambiado correctamente',
-        confirmButtonColor: '#3085d6',
-      });
-    } catch (err) {
-      console.error('Error al cambiar imagen', err);
-      MySwal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: err.response?.data?.message || 'Error al cambiar la imagen',
-        confirmButtonColor: '#3085d6',
-      });
-      setImagenPreview(null);
-    } finally {
-      setIsProcessing(false);
+    if (file) {
+      setImagenPreview(URL.createObjectURL(file));
+      setImagenError(false);
+      try {
+        const res = await cambiarImagen(perfil.id, file);
+        setPerfil(res.data);
+      } catch (err) {
+        console.error('Error al cambiar imagen', err);
+      }
     }
   };
 
   const handleEliminarFavorito = async (productoId) => {
-    const result = await MySwal.fire({
-      title: '¿Quitar de favoritos?',
-      text: "¿Estás seguro que deseas eliminar este producto de tus favoritos?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, quitar',
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await eliminarFavorito(perfil.id, productoId);
-        setFavoritos(favoritos.filter((f) => f.productoId !== productoId));
-        await MySwal.fire({
-          icon: 'success',
-          title: 'Eliminado',
-          text: 'El producto se ha quitado de tus favoritos',
-          confirmButtonColor: '#3085d6',
-        });
-      } catch (err) {
-        console.error('Error al eliminar favorito', err);
-        MySwal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo eliminar el favorito',
-          confirmButtonColor: '#3085d6',
-        });
-      }
+    try {
+      await eliminarFavorito(perfil.id, productoId);
+      setFavoritos(favoritos.filter((f) => f.productoId !== productoId));
+    } catch (err) {
+      console.error('Error al eliminar favorito', err);
     }
   };
 
   const handleCancelarReserva = async (reservaId) => {
-    const reserva = reservas.find(r => r.id === reservaId);
-    const fechaFin = new Date(reserva.fechaFin);
-    const hoy = new Date();
-
-    if (fechaFin < hoy) {
-      await MySwal.fire({
-        icon: 'info',
-        title: 'Reserva completada',
-        text: 'Esta reserva ya ha finalizado y no puede ser cancelada',
-        confirmButtonColor: '#3085d6',
-      });
-      return;
-    }
-
-    const result = await MySwal.fire({
-      title: '¿Cancelar reserva?',
-      html: `
-        <div style="text-align: left;">
-          <p>¿Estás seguro que deseas cancelar esta reserva?</p>
-          <p><strong>Fecha de inicio:</strong> ${new Date(reserva.fechaInicio).toLocaleDateString()}</p>
-          <p><strong>Fecha de fin:</strong> ${fechaFin.toLocaleDateString()}</p>
-        </div>
-      `,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, cancelar',
-      cancelButtonText: 'No, mantener'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await cancelarReserva(reservaId);
-        setReservas(reservas.filter((r) => r.id !== reservaId));
-        await MySwal.fire({
-          icon: 'success',
-          title: 'Reserva cancelada',
-          text: 'Tu reserva ha sido cancelada exitosamente',
-          confirmButtonColor: '#3085d6',
-        });
-      } catch (err) {
-        console.error('Error al cancelar reserva', err);
-        MySwal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: err.response?.data?.message || 'No se pudo cancelar la reserva',
-          confirmButtonColor: '#3085d6',
-        });
-      }
+    try {
+      await cancelarReserva(reservaId);
+      setReservas(reservas.filter((r) => r.id !== reservaId));
+    } catch (err) {
+      console.error('Error al cancelar reserva', err);
     }
   };
 
@@ -242,16 +129,7 @@ function PerfilView() {
     );
   }
 
-  if (!perfil) {
-    return (
-      <div className="text-center mt-5">
-        <p>Error al cargar el perfil</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>
-          Recargar página
-        </button>
-      </div>
-    );
-  }
+  if (!perfil) return <p className="text-center mt-5">Error al cargar el perfil</p>;
 
   return (
     <div className="profile-container">
@@ -263,13 +141,7 @@ function PerfilView() {
             {renderAvatar()}
             <label className="change-photo-btn" title="Cambiar foto">
               <FiCamera className="camera-icon" />
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImagenChange} 
-                hidden 
-                disabled={isProcessing}
-              />
+              <input type="file" accept="image/*" onChange={handleImagenChange} hidden />
             </label>
           </div>
         </div>
@@ -303,19 +175,10 @@ function PerfilView() {
                 />
               </div>
               <div className="button-group">
-                <button 
-                  className="btn-save" 
-                  onClick={handleGuardar}
-                  disabled={isProcessing}
-                >
-                  <FiSave className="btn-icon" /> 
-                  {isProcessing ? 'Guardando...' : 'Guardar'}
+                <button className="btn-save" onClick={handleGuardar}>
+                  <FiSave className="btn-icon" /> Guardar
                 </button>
-                <button 
-                  className="btn-cancel" 
-                  onClick={() => setEditMode(false)}
-                  disabled={isProcessing}
-                >
+                <button className="btn-cancel" onClick={() => setEditMode(false)}>
                   <FiX className="btn-icon" /> Cancelar
                 </button>
               </div>
@@ -329,11 +192,7 @@ function PerfilView() {
               <div className="profile-detail">
                 <FiUser className="detail-icon" /> <span>{perfil.rol}</span>
               </div>
-              <button 
-                className="btn-edit" 
-                onClick={handleEditar}
-                disabled={isProcessing}
-              >
+              <button className="btn-edit" onClick={handleEditar}>
                 <FiEdit className="btn-icon" /> Editar perfil
               </button>
             </div>
@@ -356,11 +215,7 @@ function PerfilView() {
                     <img src={fav.imagenProducto} alt={fav.nombreProducto} className="favorite-image" />
                   )}
                 </Link>
-                <button 
-                  className="btn btn-danger btn-sm mt-2" 
-                  onClick={() => handleEliminarFavorito(fav.productoId)}
-                  disabled={isProcessing}
-                >
+                <button className="btn btn-danger btn-sm mt-2" onClick={() => handleEliminarFavorito(fav.productoId)}>
                   Quitar
                 </button>
               </div>
@@ -376,47 +231,41 @@ function PerfilView() {
           <p className="text-center text-muted">No tienes reservas activas.</p>
         ) : (
           <div className="reservas-grid">
-            {reservas.map((reserva) => {
-              const fechaFin = new Date(reserva.fechaFin);
-              const hoy = new Date();
-              const puedeCancelar = fechaFin >= hoy;
-
-              return (
-                <div key={reserva.id} className="reserva-card">
-                  <Link to={`/productos/${reserva.productoId}`} className="text-decoration-none text-dark">
-                    <h4>{reserva.nombreProducto}</h4>
-                    {reserva.imagenProducto && (
-                      <img
-                        src={reserva.imagenProducto}
-                        alt={reserva.nombreProducto}
-                        className="favorite-image"
-                      />
-                    )}
-                    <div className="reserva-dates">
-                      <p><strong>Inicio:</strong> {new Date(reserva.fechaInicio).toLocaleDateString()}</p>
-                      <p><strong>Fin:</strong> {fechaFin.toLocaleDateString()}</p>
-                    </div>
-                  </Link>
-
-                  {puedeCancelar ? (
-                    <button
-                      className="btn btn-outline-danger btn-sm mt-2"
-                      onClick={() => handleCancelarReserva(reserva.id)}
-                      disabled={isProcessing}
-                    >
-                      <FiTrash2 /> Cancelar reserva
-                    </button>
-                  ) : (
-                    <Link
-                      to={`/productos/${reserva.productoId}?valorar=true`}
-                      className="btn btn-success btn-sm mt-2"
-                    >
-                      Valorar
-                    </Link>
+            {reservas.map((reserva) => (
+              <div key={reserva.id} className="reserva-card">
+                <Link to={`/productos/${reserva.productoId}`} className="text-decoration-none text-dark">
+                  <h4>{reserva.nombreProducto}</h4>
+                  {reserva.imagenProducto && (
+                    <img
+                      src={reserva.imagenProducto}
+                      alt={reserva.nombreProducto}
+                      className="favorite-image"
+                    />
                   )}
-                </div>
-              );
-            })}
+                </Link>
+
+                {/* Botón cancelar si la reserva aún no ha pasado */}
+                {new Date(reserva.fechaFin) >= new Date() && (
+                  <button
+                    className="btn btn-outline-danger btn-sm mt-2"
+                    onClick={() => handleCancelarReserva(reserva.id)}
+                  >
+                    <FiTrash2 /> Cancelar reserva
+                  </button>
+                )}
+
+                {/* Botón valorar si ya terminó */}
+                {new Date(reserva.fechaFin) < new Date() && (
+                  <Link
+                    to={`/productos/${reserva.productoId}?valorar=true`}
+                    className="btn btn-success btn-sm mt-2"
+                  >
+                    Valorar
+                  </Link>
+                )}
+              </div>
+
+            ))}
           </div>
         )}
       </div>

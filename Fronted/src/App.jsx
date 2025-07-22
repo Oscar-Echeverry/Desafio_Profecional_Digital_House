@@ -5,8 +5,6 @@ import {
   Route,
   Navigate,
 } from 'react-router-dom';
-//fronted bueno original ya con areglo
-
 
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -21,9 +19,6 @@ import Resetear from './pages/Resetear';
 import ProductDetail from './components/ProductDetail';
 import ConfirmarCuenta from './pages/ConfirmarCuenta';
 import Reserva from './pages/ReservaForm';
-import WhatsAppFloat from './components/WhatsAppFloat';
-import PoliticaPrivacidad from './pages/PoliticaPrivacidad';
-
 
 function isTokenExpired(token) {
   if (!token) return true;
@@ -56,7 +51,7 @@ function App() {
   useEffect(() => {
     const fetchUsuario = async () => {
       try {
-        const res = await fetch('https://tripnest.duckdns.org/api/usuarios/me', {
+        const res = await fetch('http://localhost:8080/api/usuarios/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -112,8 +107,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/recuperar" element={<Recuperar />} />
             <Route path="/api/auth/resetear" element={<Resetear />} />
-            <Route path="/confirmar" element={<ConfirmarCuenta />} />
-            <Route path="/privacidad" element={<PoliticaPrivacidad />} />
+            <Route path="/api/auth/confirmar" element={<ConfirmarCuenta />} />
             <Route
               path="/perfil"
               element={token ? <PerfilView /> : <Navigate to="/login" />}
@@ -149,7 +143,6 @@ function App() {
             <Route path="*" element={<h2>Página no encontrada</h2>} />
           </Routes>
         </main>
-        <WhatsAppFloat/>
         <Footer />
       </div>
     </Router>

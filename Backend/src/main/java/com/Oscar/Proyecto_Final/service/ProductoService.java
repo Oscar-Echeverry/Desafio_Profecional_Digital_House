@@ -44,43 +44,34 @@ public class ProductoService {
     }
 
     public ProductoDTO mapearDTO(Producto producto) {
-        List<String> imagenes = Optional.ofNullable(producto.getImagenes())
-                .orElse(List.of())
-                .stream()
+        List<String> imagenes = producto.getImagenes().stream()
                 .map(Imagen::getUrl)
                 .collect(Collectors.toList());
 
-        List<String> caracteristicas = Optional.ofNullable(producto.getCaracteristicas())
-                .orElse(List.of())
-                .stream()
+        List<String> caracteristicas = producto.getCaracteristicas().stream()
                 .map(Caracteristica::getNombre)
                 .collect(Collectors.toList());
 
-        List<PoliticaDTO> politicas = Optional.ofNullable(producto.getPoliticas())
-                .orElse(List.of())
-                .stream()
+        List<PoliticaDTO> politicas = producto.getPoliticas().stream()
                 .map(p -> PoliticaDTO.builder()
                         .titulo(p.getTitulo())
                         .descripcion(p.getDescripcion())
                         .build())
                 .collect(Collectors.toList());
 
-        List<ValoracionDTO> valoraciones = Optional.ofNullable(producto.getValoraciones())
-                .orElse(List.of())
-                .stream()
+        List<ValoracionDTO> valoraciones = producto.getValoraciones().stream()
                 .map(v -> ValoracionDTO.builder()
                         .puntuacion(v.getPuntuacion())
                         .comentario(v.getComentario())
-                        .usuario(v.getUsuario() != null ? (v.getUsuario().getNombre() + " " + v.getUsuario().getApellido()) : "Usuario desconocido")
+                        .usuario(v.getUsuario().getNombre() + " " + v.getUsuario().getApellido())
                         .fecha(v.getFecha().toString())
                         .build())
                 .collect(Collectors.toList());
 
-        double promedio = producto.getValoraciones() != null && !producto.getValoraciones().isEmpty()
-                ? producto.getValoraciones().stream().mapToInt(Valoracion::getPuntuacion).average().orElse(0.0)
-                : 0.0;
-
-        int total = producto.getValoraciones() != null ? producto.getValoraciones().size() : 0;
+        double promedio = producto.getValoraciones().stream()
+                .mapToInt(Valoracion::getPuntuacion)
+                .average()
+                .orElse(0.0);
 
         return ProductoDTO.builder()
                 .id(producto.getId())
@@ -88,15 +79,17 @@ public class ProductoService {
                 .descripcion(producto.getDescripcion())
                 .direccion(producto.getDireccion())
                 .ciudad(producto.getCiudad())
-                .categoria(producto.getCategoria() != null ? producto.getCategoria().getNombre() : "Sin categoría")
+                .categoria(producto.getCategoria().getNombre())
                 .imagenes(imagenes)
                 .caracteristicas(caracteristicas)
                 .politicas(politicas)
                 .valoraciones(valoraciones)
                 .puntuacionPromedio(promedio)
-                .cantidadValoraciones(total)
+                .cantidadValoraciones(producto.getValoraciones().size())
                 .build();
     }
+
+
 
     public Producto guardarProducto(ProductoDTO dto, List<MultipartFile> archivos) throws IOException {
         if (productoRepository.existsByNombre(dto.getNombre())) {

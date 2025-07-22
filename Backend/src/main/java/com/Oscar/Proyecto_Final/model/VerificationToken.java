@@ -18,8 +18,7 @@ public class VerificationToken {
 
     private String token;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @OneToOne
     private Usuario usuario;
 
     private LocalDateTime expiracion;

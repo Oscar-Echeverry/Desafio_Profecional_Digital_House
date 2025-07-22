@@ -1,86 +1,20 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Form, Button, Row, Col, Spinner } from 'react-bootstrap';
-import { obtenerProductos } from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { Form, Button, Row, Col } from 'react-bootstrap';
+import axios from 'axios';
 import '../styles/HeroBanner.css';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-
-const MySwal = withReactContent(Swal);
 
 function HeroBanner({ filtro, setFiltro, buscarProductos }) {
   const [ciudadesSugeridas, setCiudadesSugeridas] = useState([]);
-  const [isLoadingCities, setIsLoadingCities] = useState(true);
-  const recommendationsRef = useRef(null);
 
   useEffect(() => {
-    const cargarCiudades = async () => {
-      try {
-        setIsLoadingCities(true);
-        const res = await obtenerProductos();
+    axios.get('http://localhost:8080/api/productos')
+      .then(res => {
         const productos = res.data;
-        const ciudadesUnicas = [...new Set(productos.map(p => p.ciudad.trim()))]
-          .filter(ciudad => ciudad)
-          .sort();
-        
+        const ciudadesUnicas = [...new Set(productos.map(p => p.ciudad.trim()))];
         setCiudadesSugeridas(ciudadesUnicas);
-      } catch (err) {
-        console.error('Error cargando ciudades:', err);
-        MySwal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudieron cargar las ciudades disponibles',
-          confirmButtonColor: '#3085d6',
-        });
-      } finally {
-        setIsLoadingCities(false);
-      }
-    };
-
-    cargarCiudades();
+      })
+      .catch(err => console.error('Error cargando ciudades:', err));
   }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!filtro.ciudad) {
-      await MySwal.fire({
-        icon: 'warning',
-        title: 'Destino requerido',
-        text: 'Por favor ingresa una ciudad o destino',
-        confirmButtonColor: '#3085d6',
-      });
-      return;
-    }
-
-    if (!filtro.fechaInicio || !filtro.fechaFin) {
-      await MySwal.fire({
-        icon: 'warning',
-        title: 'Fechas requeridas',
-        text: 'Por favor selecciona ambas fechas',
-        confirmButtonColor: '#3085d6',
-      });
-      return;
-    }
-
-    if (new Date(filtro.fechaInicio) > new Date(filtro.fechaFin)) {
-      await MySwal.fire({
-        icon: 'warning',
-        title: 'Fechas inválidas',
-        text: 'La fecha de check-in debe ser anterior al check-out',
-        confirmButtonColor: '#3085d6',
-      });
-      return;
-    }
-    await buscarProductos(e);
-    setTimeout(() => {
-      const recommendationsSection = document.getElementById('recommendations-section');
-      if (recommendationsSection) {
-        recommendationsSection.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-    }, 1);
-  };
 
   return (
     <div className="hero-banner-fullwidth">
@@ -91,7 +25,7 @@ function HeroBanner({ filtro, setFiltro, buscarProductos }) {
           Encontrá alojamientos disponibles según tu destino y fechas seleccionadas.
         </p>
 
-        <Form className="hero-search-form" onSubmit={handleSubmit}>
+        <Form className="hero-search-form" onSubmit={buscarProductos}>
           <Row className="align-items-end g-2">
             {/* Campo ciudad con datalist */}
             <Col xs={12} md={5}>
@@ -105,20 +39,12 @@ function HeroBanner({ filtro, setFiltro, buscarProductos }) {
                   onChange={(e) =>
                     setFiltro({ ...filtro, ciudad: e.target.value })
                   }
-                  disabled={isLoadingCities}
                 />
-                {isLoadingCities ? (
-                  <div className="mt-2">
-                    <Spinner animation="border" size="sm" />
-                    <span className="ms-2">Cargando ciudades...</span>
-                  </div>
-                ) : (
-                  <datalist id="sugerencias">
-                    {ciudadesSugeridas.map((ciudad, idx) => (
-                      <option key={idx} value={ciudad} />
-                    ))}
-                  </datalist>
-                )}
+                <datalist id="sugerencias">
+                  {ciudadesSugeridas.map((ciudad, idx) => (
+                    <option key={idx} value={ciudad} />
+                  ))}
+                </datalist>
               </Form.Group>
             </Col>
 
@@ -129,7 +55,6 @@ function HeroBanner({ filtro, setFiltro, buscarProductos }) {
                 <Form.Control
                   type="date"
                   value={filtro.fechaInicio || ''}
-                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) =>
                     setFiltro({ ...filtro, fechaInicio: e.target.value })
                   }
@@ -143,7 +68,6 @@ function HeroBanner({ filtro, setFiltro, buscarProductos }) {
                 <Form.Control
                   type="date"
                   value={filtro.fechaFin || ''}
-                  min={filtro.fechaInicio || new Date().toISOString().split('T')[0]}
                   onChange={(e) =>
                     setFiltro({ ...filtro, fechaFin: e.target.value })
                   }

@@ -1,88 +1,80 @@
-import React, { useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { confirmarCuenta } from '../services/api';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-import '../styles/ConfirmarCuenta.css';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const MySwal = withReactContent(Swal);
-
-function ConfirmarCuenta() {
-  const [searchParams] = useSearchParams();
+const ConfirmarCuenta = () => {
+  const [mensaje, setMensaje] = useState('Confirmando cuenta...');
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const alreadyConfirmed = useRef(false);
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
 
     if (!token) {
-      MySwal.fire({
-        icon: 'error',
-        title: 'Token inválido',
-        text: 'El enlace de confirmación no es válido.',
-        confirmButtonColor: '#3085d6',
-      }).then(() => navigate('/login'));
+      setMensaje('Token no proporcionado.');
+      setError(true);
+      setLoading(false);
       return;
     }
 
-    if (alreadyConfirmed.current) return;
-    alreadyConfirmed.current = true;
-
-    const confirmar = async () => {
-      try {
-        const response = await confirmarCuenta(token);
-
-        await MySwal.fire({
-          icon: 'success',
-          title: '¡Cuenta confirmada!',
-          html: `
-            <div style="text-align: center;">
-              <p>${response.data || 'Tu cuenta ha sido confirmada exitosamente.'}</p>
-              <p>Ahora puedes iniciar sesión con tus credenciales.</p>
-            </div>
-          `,
-          confirmButtonText: 'Ir a Login',
-          confirmButtonColor: '#3085d6',
-          allowOutsideClick: false,
-          allowEscapeKey: false
-        });
-
-        navigate('/login');
-      } catch (err) {
-        console.error('Error al confirmar cuenta:', err);
-
-        await MySwal.fire({
-          icon: 'error',
-          title: 'Error al confirmar',
-          html: `
-            <div style="text-align: center;">
-              <p>${err.response?.data?.message || 'No se pudo confirmar tu cuenta.'}</p>
-              <p>El enlace puede haber expirado o ser inválido.</p>
-            </div>
-          `,
-          confirmButtonText: 'Entendido',
-          confirmButtonColor: '#3085d6'
-        });
-
-        navigate('/login');
-      }
-    };
-
-    confirmar();
-  }, [searchParams, navigate]);
+    fetch(`http://localhost:8080/api/auth/confirmar?token=${token}`, {
+      method: 'GET',
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(text || 'Error al confirmar cuenta');
+        }
+        return text;
+      })
+      .then((text) => {
+        setMensaje(text || 'Cuenta confirmada con éxito.');
+        setError(false);
+      })
+      .catch((err) => {
+        setMensaje(err.message);
+        setError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   return (
-    <div className="confirmar-cuenta-container">
-      <div className="confirmar-cuenta-card">
-        <div className="spinner-container">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Confirmando cuenta...</span>
-          </div>
-          <p className="mt-3">Confirmando tu cuenta...</p>
+    <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
+      <div className="card shadow p-4" style={{ maxWidth: 420, width: '90%' }}>
+        <div className="text-center mb-3">
+          <h3 className={error ? 'text-danger' : 'text-success'}>
+            {error ? 'Error' : '¡Éxito!'}
+          </h3>
         </div>
+
+        {loading ? (
+          <div className="d-flex justify-content-center my-4">
+            <div className="spinner-border text-primary" role="status" aria-label="Loading">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+        ) : (
+          <p className={`text-center mb-4 ${error ? 'text-danger' : 'text-success'}`}>
+            {mensaje}
+          </p>
+        )}
+
+        {!loading && (
+          <div className="d-flex justify-content-center">
+            <button
+              onClick={() => navigate('/login')}
+              className={`btn ${error ? 'btn-outline-danger' : 'btn-success'} w-100`}
+            >
+              Ir a Iniciar Sesión
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default ConfirmarCuenta;

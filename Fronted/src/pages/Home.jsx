@@ -21,6 +21,7 @@ function Home() {
     fechaFin: '',
   });
 
+  // ✅ Carga inicial
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,6 +39,8 @@ function Home() {
 
     fetchData();
   }, []);
+
+  // ✅ Buscar productos con filtro
   const buscarProductos = async (e) => {
     e.preventDefault();
 
@@ -61,6 +64,8 @@ function Home() {
       setLoading(false);
     }
   };
+
+  // ✅ Filtrar por categoría
   const filtrarPorCategoria = async (categoriaId) => {
     try {
       setLoading(true);
@@ -72,6 +77,8 @@ function Home() {
       setLoading(false);
     }
   };
+
+  // ✅ Mostrar todos (home)
   const mostrarTodos = async () => {
     try {
       setLoading(true);
@@ -95,6 +102,7 @@ function Home() {
       <CategoryGrid
         categorias={categorias}
         filtrarPorCategoria={filtrarPorCategoria}
+        mostrarTodos={mostrarTodos} // si tienes un botón de "ver todos"
       />
 
       {loading ? (

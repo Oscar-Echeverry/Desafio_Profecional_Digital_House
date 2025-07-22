@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://tripnest.duckdns.org//api';
+const API_URL = 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -100,7 +100,6 @@ export const obtenerProductos = () => api.get('/productos');
 export const obtenerProductosPorCategoria = (categoriaId) =>
   api.get(`/productos/categoria/${categoriaId}`);
 export const obtenerProductosHome = () => api.get('/productos/home');
-export const obtenerCategorias = () => api.get('/categorias');
 export const buscarProductosPorFiltro = ({ ciudad, fechaInicio, fechaFin }) => {
   const params = {
     ciudad,
