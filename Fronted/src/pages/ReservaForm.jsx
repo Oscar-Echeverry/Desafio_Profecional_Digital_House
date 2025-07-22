@@ -5,8 +5,12 @@ import {
   obtenerReservasPorProducto,
   obtenerProductoPorId
 } from '../services/api';
-import { Form, Button, Alert, Card } from 'react-bootstrap';
+import { Form, Button, Card, Spinner } from 'react-bootstrap';
 import CalendarOcupadas from '../components/CalendarOcupadas';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 function ReservaForm() {
   const { id } = useParams(); // productoId
@@ -15,18 +19,21 @@ function ReservaForm() {
   const [producto, setProducto] = useState(null);
   const [fechasOcupadas, setFechasOcupadas] = useState([]);
   const [form, setForm] = useState({ fechaInicio: '', fechaFin: '' });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const resProducto = await obtenerProductoPorId(id);
+        setIsLoading(true);
+        const [resProducto, resReservas] = await Promise.all([
+          obtenerProductoPorId(id),
+          obtenerReservasPorProducto(id)
+        ]);
+
         setProducto(resProducto.data);
 
-        const resReservas = await obtenerReservasPorProducto(id);
-
-        // 🔁 Adaptar formato esperado por CalendarOcupadas
+        // Adaptar formato esperado por CalendarOcupadas
         const fechasAdaptadas = resReservas.data.map((r) => ({
           inicio: r.fechaInicio,
           fin: r.fechaFin
@@ -35,12 +42,19 @@ function ReservaForm() {
 
       } catch (err) {
         console.error('Error al cargar datos:', err);
-        setError('Error al cargar los datos del producto o reservas.');
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar la información del producto',
+          confirmButtonColor: '#3085d6',
+        }).then(() => navigate('/'));
+      } finally {
+        setIsLoading(false);
       }
     };
 
     cargarDatos();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleChange = (e) => {
     setForm({
@@ -60,7 +74,12 @@ function ReservaForm() {
     hoy.setHours(0, 0, 0, 0); // Ignorar hora
 
     if (nuevaInicio < hoy || nuevaFin < hoy) {
-      setError('No puedes reservar fechas pasadas.');
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Fecha inválida',
+        text: 'No puedes reservar fechas pasadas o la actual',
+        confirmButtonColor: '#3085d6',
+      });
       return false;
     }
 
@@ -69,6 +88,18 @@ function ReservaForm() {
       const existenteFin = new Date(reserva.fin);
 
       if (fechasSeTraslapan(nuevaInicio, nuevaFin, existenteInicio, existenteFin)) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Fechas ocupadas',
+          html: `
+            <div style="text-align: left;">
+              <p>Las fechas seleccionadas coinciden con una reserva existente:</p>
+              <p><strong>Desde:</strong> ${existenteInicio.toLocaleDateString()}</p>
+              <p><strong>Hasta:</strong> ${existenteFin.toLocaleDateString()}</p>
+            </div>
+          `,
+          confirmButtonColor: '#3085d6',
+        });
         return false;
       }
     }
@@ -78,27 +109,32 @@ function ReservaForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Debes iniciar sesión para reservar');
-      return;
-    }
+    setIsSubmitting(true);
 
     if (!form.fechaInicio || !form.fechaFin) {
-      setError('Por favor selecciona ambas fechas');
+      await MySwal.fire({
+        icon: 'warning',
+        title: 'Faltan fechas',
+        text: 'Por favor selecciona ambas fechas',
+        confirmButtonColor: '#3085d6',
+      });
+      setIsSubmitting(false);
       return;
     }
 
     if (new Date(form.fechaInicio) > new Date(form.fechaFin)) {
-      setError('La fecha de inicio debe ser antes que la de fin');
+      await MySwal.fire({
+        icon: 'warning',
+        title: 'Fechas inválidas',
+        text: 'La fecha de inicio debe ser antes que la de fin',
+        confirmButtonColor: '#3085d6',
+      });
+      setIsSubmitting(false);
       return;
     }
 
     if (!validarDisponibilidad()) {
-      if (!error) setError('Las fechas seleccionadas están ocupadas');
+      setIsSubmitting(false);
       return;
     }
 
@@ -109,23 +145,58 @@ function ReservaForm() {
         fechaFin: form.fechaFin
       });
 
-      setSuccess('Reserva creada exitosamente');
-      setTimeout(() => navigate('/perfil'), 2000);
+      await MySwal.fire({
+        icon: 'success',
+        title: '¡Reserva confirmada!',
+        html: `
+          <div style="text-align: left;">
+            <p>Tu reserva para <strong>${producto.nombre}</strong> ha sido creada exitosamente.</p>
+            <p><strong>Fecha de inicio:</strong> ${new Date(form.fechaInicio).toLocaleDateString()}</p>
+            <p><strong>Fecha de fin:</strong> ${new Date(form.fechaFin).toLocaleDateString()}</p>
+            <p>Recibirás un correo con los detalles de tu reserva.</p>
+          </div>
+        `,
+        confirmButtonColor: '#3085d6',
+      });
+
+      navigate('/perfil');
     } catch (err) {
       console.error(err);
-      setError('Error al crear la reserva');
+      await MySwal.fire({
+        icon: 'error',
+        title: 'Error al reservar',
+        text: err.response?.data?.message || 'No se pudo completar la reserva',
+        confirmButtonColor: '#3085d6',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (!producto) return <div className="text-center mt-5">Cargando producto...</div>;
+  if (isLoading) {
+    return (
+      <div className="text-center mt-5">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-2">Cargando información del producto...</p>
+      </div>
+    );
+  }
+
+  if (!producto) {
+    return (
+      <div className="text-center mt-5">
+        <p>No se pudo cargar la información del producto</p>
+        <Button variant="primary" onClick={() => window.location.reload()}>
+          Recargar página
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container my-5">
       <Card className="p-4 shadow mx-auto" style={{ maxWidth: '600px' }}>
         <h3 className="mb-4 text-center">Reservar: {producto.nombre}</h3>
-
-        {error && <Alert variant="danger">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
 
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
@@ -136,6 +207,7 @@ function ReservaForm() {
               value={form.fechaInicio}
               onChange={handleChange}
               required
+              min={new Date().toISOString().split('T')[0]}
             />
           </Form.Group>
 
@@ -147,11 +219,22 @@ function ReservaForm() {
               value={form.fechaFin}
               onChange={handleChange}
               required
+              min={form.fechaInicio || new Date().toISOString().split('T')[0]}
             />
           </Form.Group>
 
-          <Button variant="success" type="submit" className="w-100">
-            Confirmar reserva
+          <Button 
+            variant="success" 
+            type="submit" 
+            className="w-100"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Procesando...
+              </>
+            ) : 'Confirmar reserva'}
           </Button>
         </Form>
 

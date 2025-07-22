@@ -33,7 +33,6 @@ public class AuthService {
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("El email ya está registrado.");
         }
-
         Usuario usuario = Usuario.builder()
                 .nombre(dto.getNombre())
                 .apellido(dto.getApellido())
@@ -43,37 +42,39 @@ public class AuthService {
                 .verificado(false)
                 .activo(true)
                 .build();
-
         usuarioRepository.save(usuario);
-
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = VerificationToken.builder()
                 .token(token)
                 .usuario(usuario)
-                .expiracion(LocalDateTime.now().plusMinutes(15))
+                .expiracion(LocalDateTime.now().plusMinutes(1))
                 .build();
-
         verificationTokenRepository.save(verificationToken);
         emailService.enviarCorreoConfirmacion(usuario.getEmail(), usuario.getNombre(), token);
-
         return usuario;
     }
-
     @Transactional
     public void confirmarUsuario(String token) {
         VerificationToken verificationToken = verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token no válido"));
-
-        if (verificationToken.getExpiracion().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("El token ha expirado");
-        }
-
         Usuario usuario = verificationToken.getUsuario();
+        if (verificationToken.getExpiracion().isBefore(LocalDateTime.now())) {
+            verificationTokenRepository.delete(verificationToken);
+            verificationTokenRepository.deleteByUsuario(usuario);
+            String nuevoToken = UUID.randomUUID().toString();
+            VerificationToken nuevo = VerificationToken.builder()
+                    .token(nuevoToken)
+                    .usuario(usuario)
+                    .expiracion(LocalDateTime.now().plusMinutes(15))
+                    .build();
+            verificationTokenRepository.save(nuevo);
+            emailService.enviarCorreoConfirmacion(usuario.getEmail(), usuario.getNombre(), nuevoToken);
+            throw new RuntimeException("El token ha expirado. Se ha enviado uno nuevo a tu correo.");
+        }
         usuario.setVerificado(true);
         usuarioRepository.save(usuario);
         verificationTokenRepository.delete(verificationToken);
     }
-
     @Transactional
     public void enviarTokenResetPassword(String email) {
         Usuario usuario = usuarioRepository.findByEmail(email)

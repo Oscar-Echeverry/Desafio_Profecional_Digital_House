@@ -20,7 +20,7 @@ public class EmailService {
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);
 
-            String link = "http://localhost:5173/api/auth/confirmar?token=" + token;
+            String link = "https://unrivaled-pegasus-e3b9bf.netlify.app/confirmar?token=" + token;
 
             String contenido = """
 <!DOCTYPE html>
@@ -79,7 +79,7 @@ public class EmailService {
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);
 
-            String link = "http://localhost:5173/api/auth/resetear?token=" + token;
+            String link = "https://unrivaled-pegasus-e3b9bf.netlify.app/api/auth/resetear?token=" + token;
 
             String contenido = """
 <!DOCTYPE html>

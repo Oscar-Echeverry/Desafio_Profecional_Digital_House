@@ -1,49 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Alert, Button, Form, Card } from 'react-bootstrap';
+import { Button, Form, Card, Spinner } from 'react-bootstrap';
+import { resetearPassword } from '../services/api';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import '../styles/Resetear.css';
+
+const MySwal = withReactContent(Swal);
 
 function Resetear() {
   const [searchParams] = useSearchParams();
   const [nuevaPassword, setNuevaPassword] = useState('');
-  const [mensaje, setMensaje] = useState('');
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [tokenValido, setTokenValido] = useState(true);
   const navigate = useNavigate();
 
   const token = searchParams.get('token');
 
   useEffect(() => {
     if (!token) {
-      setError('Token no válido o faltante.');
+      setTokenValido(false);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Enlace inválido',
+        text: 'El enlace de recuperación no es válido o ha expirado',
+        confirmButtonColor: '#3085d6',
+      }).then(() => navigate('/recuperar'));
     }
-  }, [token]);
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMensaje('');
-    setError('');
+    setIsLoading(true);
 
     try {
-      await axios.post(`http://localhost:8080/api/auth/resetear`, null, {
-        params: {
-          token: token,
-          nuevaPassword: nuevaPassword
-        }
+      await resetearPassword(token, nuevaPassword);
+      
+      await MySwal.fire({
+        icon: 'success',
+        title: '¡Contraseña actualizada!',
+        html: `
+          <div style="text-align: left;">
+            <p>Tu contraseña ha sido restablecida exitosamente.</p>
+            <p>Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+          </div>
+        `,
+        confirmButtonColor: '#3085d6',
       });
-      setMensaje('Contraseña restablecida correctamente. Ahora puedes iniciar sesión.');
-      setTimeout(() => navigate('/login'), 3000);
+      
+      navigate('/login');
     } catch (err) {
       console.error(err);
-      setError('Error al restablecer la contraseña. Intenta nuevamente.');
+      await MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.response?.data?.message || 'No se pudo restablecer la contraseña. Intenta nuevamente.',
+        confirmButtonColor: '#3085d6',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (!tokenValido) {
+    return (
+      <div className="resetear-container">
+        <Card className="resetear-card">
+          <h3 className="text-center mb-4">Enlace inválido</h3>
+          <p className="text-center">El enlace de recuperación no es válido o ha expirado.</p>
+          <Button 
+            variant="primary" 
+            onClick={() => navigate('/recuperar')}
+            className="w-100"
+          >
+            Solicitar nuevo enlace
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-      <Card className="p-4 shadow" style={{ maxWidth: '500px', width: '100%' }}>
+    <div className="resetear-container">
+      <Card className="resetear-card">
         <h3 className="text-center mb-4">Restablecer Contraseña</h3>
-        {mensaje && <Alert variant="success">{mensaje}</Alert>}
-        {error && <Alert variant="danger">{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3" controlId="nuevaPassword">
@@ -54,10 +94,25 @@ function Resetear() {
               value={nuevaPassword}
               onChange={(e) => setNuevaPassword(e.target.value)}
               required
+              minLength="8"
+              disabled={isLoading}
             />
+            <Form.Text className="text-muted">
+              La contraseña debe tener al menos 8 caracteres
+            </Form.Text>
           </Form.Group>
-          <Button type="submit" variant="primary" className="w-100">
-            Guardar Nueva Contraseña
+          <Button 
+            type="submit" 
+            variant="primary" 
+            className="w-100"
+            disabled={isLoading || !nuevaPassword}
+          >
+            {isLoading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Procesando...
+              </>
+            ) : 'Guardar Nueva Contraseña'}
           </Button>
         </Form>
       </Card>

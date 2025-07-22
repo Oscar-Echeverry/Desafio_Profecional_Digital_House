@@ -1,0 +1,50 @@
+.resetear-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  padding: 20px;
+}
+
+.resetear-card {
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.resetear-card h3 {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.resetear-card .form-control {
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  transition: border-color 0.3s;
+}
+
+.resetear-card .form-control:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.resetear-card .btn-primary {
+  background-color: #3498db;
+  border: none;
+  padding: 12px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.resetear-card .btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.resetear-card .btn-primary:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
