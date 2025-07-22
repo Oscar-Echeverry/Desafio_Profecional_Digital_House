@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/api/auth/recuperar",
                                 "/api/auth/resetear").permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/api/auth/confirmar").permitAll()
+                                "/api/auth/confirmar",
+                                "/api/auth/resetear").permitAll()
 
                         // Endpoints públicos de categorías y características
                         .requestMatchers(HttpMethod.GET, "/api/categorias").permitAll()

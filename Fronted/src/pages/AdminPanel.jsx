@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/AdminPanel.module.css";
 import {
   FaUsers, FaTags, FaCogs, FaBoxOpen, FaTrash, FaPlus, FaCheck, FaTimes, FaUserShield, FaUserSlash
 } from "react-icons/fa";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import * as FaIcons from "react-icons/fa";
+import { getIconComponent } from '../utils/iconUtils';
+import api from '../services/api';
+
+const MySwal = withReactContent(Swal);
 
 const AdminPanel = () => {
   const [esMovil, setEsMovil] = useState(false);
@@ -29,11 +35,6 @@ const AdminPanel = () => {
   const [modoEdicion, setModoEdicion] = useState(false);
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-
-  const config = {
-    headers: { Authorization: `Bearer ${token}` }
-  };
 
   useEffect(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -41,34 +42,26 @@ const AdminPanel = () => {
   }, []);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert("Sesión expirada. Inicia sesión.");
-      navigate("/login");
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Sesión expirada',
+        text: 'Inicia sesión para continuar.',
+        confirmButtonColor: '#3085d6',
+      }).then(() => navigate("/login"));
       return;
     }
     cargarDatos();
   }, []);
 
-  const fetchProductos = async () => {
-    try {
-      const response = await axios.get("http://localhost:8080/api/productos");
-      setProductos(response.data);
-    } catch (error) {
-      console.error("Error al obtener productos:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchProductos();
-  }, []);
-
   const cargarDatos = async () => {
     try {
       const [usuariosRes, categoriasRes, caracteristicasRes, productosRes] = await Promise.all([
-        axios.get("http://localhost:8080/api/admin/usuarios", config),
-        axios.get("http://localhost:8080/api/categorias"),
-        axios.get("http://localhost:8080/api/caracteristicas"),
-        axios.get("http://localhost:8080/api/productos")
+        api.get('/admin/usuarios'),
+        api.get('/categorias'),
+        api.get('/caracteristicas'),
+        api.get('/productos')
       ]);
       setUsuarios(usuariosRes.data);
       setCategorias(categoriasRes.data);
@@ -76,57 +69,173 @@ const AdminPanel = () => {
       setProductos(productosRes.data);
     } catch (error) {
       console.error("Error cargando datos:", error);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los datos',
+        confirmButtonColor: '#3085d6',
+      });
     }
   };
 
   const toggleAdmin = async (id, hacerAdmin) => {
-    await axios.put(`http://localhost:8080/api/admin/usuarios/${id}/promover?hacerAdmin=${hacerAdmin}`, null, config);
-    cargarDatos();
+    try {
+      await api.put(`/admin/usuarios/${id}/promover?hacerAdmin=${hacerAdmin}`);
+      cargarDatos();
+      MySwal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: `Usuario ${hacerAdmin ? 'promovido a admin' : 'degradado a usuario'}`,
+        confirmButtonColor: '#3085d6',
+      });
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al cambiar rol',
+        confirmButtonColor: '#3085d6',
+      });
+    }
   };
 
   const toggleActivo = async (id, activo) => {
-    await axios.put(`http://localhost:8080/api/admin/usuarios/${id}/bloquear?activo=${activo}`, null, config);
-    cargarDatos();
+    try {
+      await api.put(`/admin/usuarios/${id}/bloquear?activo=${activo}`);
+      cargarDatos();
+      MySwal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: `Usuario ${activo ? 'activado' : 'desactivado'}`,
+        confirmButtonColor: '#3085d6',
+      });
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al cambiar estado',
+        confirmButtonColor: '#3085d6',
+      });
+    }
   };
 
   const eliminarUsuario = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este usuario?")) {
-      await axios.delete(`http://localhost:8080/api/admin/usuarios/${id}`, config);
-      cargarDatos();
+    const result = await MySwal.fire({
+      title: '¿Estás seguro?',
+      text: "No podrás revertir esta acción",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/admin/usuarios/${id}`);
+        cargarDatos();
+        MySwal.fire({
+          icon: 'success',
+          title: 'Eliminado',
+          text: 'El usuario ha sido eliminado',
+          confirmButtonColor: '#3085d6',
+        });
+      } catch (error) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al eliminar usuario',
+          confirmButtonColor: '#3085d6',
+        });
+      }
     }
   };
 
   const crearCategoria = async () => {
-    const formData = new FormData();
-    formData.append("categoria", JSON.stringify({
-      nombre: nuevaCategoria.nombre,
-      descripcion: nuevaCategoria.descripcion
-    }));
-    formData.append("imagen", nuevaCategoria.imagen);
-    await axios.post("http://localhost:8080/api/categorias", formData, config);
-    setNuevaCategoria({ nombre: "", descripcion: "", imagen: null });
-    cargarDatos();
+    try {
+      const formData = new FormData();
+      formData.append("categoria", JSON.stringify({
+        nombre: nuevaCategoria.nombre,
+        descripcion: nuevaCategoria.descripcion
+      }));
+      formData.append("imagen", nuevaCategoria.imagen);
+      
+      await api.post('/categorias', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setNuevaCategoria({ nombre: "", descripcion: "", imagen: null });
+      cargarDatos();
+      
+      MySwal.fire({
+        icon: 'success',
+        title: 'Categoría creada',
+        confirmButtonColor: '#3085d6',
+      });
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al crear categoría',
+        confirmButtonColor: '#3085d6',
+      });
+    }
   };
 
   const editarCategoria = async () => {
     if (!categoriaEditando) return;
-    const formData = new FormData();
-    formData.append("categoria", JSON.stringify({
-      nombre: categoriaEditando.nombre,
-      descripcion: categoriaEditando.descripcion || ""
-    }));
-    if (categoriaEditando.imagen instanceof File) {
-      formData.append("imagen", categoriaEditando.imagen);
+    
+    try {
+      const formData = new FormData();
+      formData.append("categoria", JSON.stringify({
+        nombre: categoriaEditando.nombre,
+        descripcion: categoriaEditando.descripcion || ""
+      }));
+      if (categoriaEditando.imagen instanceof File) {
+        formData.append("imagen", categoriaEditando.imagen);
+      }
+      
+      await api.put(`/categorias/${categoriaEditando.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setCategoriaEditando(null);
+      cargarDatos();
+      
+      MySwal.fire({
+        icon: 'success',
+        title: 'Categoría actualizada',
+        confirmButtonColor: '#3085d6',
+      });
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al actualizar categoría',
+        confirmButtonColor: '#3085d6',
+      });
     }
-    await axios.put(`http://localhost:8080/api/categorias/${categoriaEditando.id}`, formData, config);
-    setCategoriaEditando(null);
-    cargarDatos();
   };
 
   const crearCaracteristica = async () => {
-    await axios.post("http://localhost:8080/api/caracteristicas", nuevaCaracteristica, config);
-    setNuevaCaracteristica({ nombre: "", icono: "" });
-    cargarDatos();
+    try {
+      await api.post('/caracteristicas', nuevaCaracteristica);
+      setNuevaCaracteristica({ nombre: "", icono: "" });
+      cargarDatos();
+      
+      MySwal.fire({
+        icon: 'success',
+        title: 'Característica creada',
+        confirmButtonColor: '#3085d6',
+      });
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al crear característica',
+        confirmButtonColor: '#3085d6',
+      });
+    }
   };
 
   const guardarProducto = async () => {
@@ -150,29 +259,29 @@ const AdminPanel = () => {
       imagenesProducto.forEach(img => formData.append("imagenes", img));
 
       if (modoEdicion) {
-        await axios.put(
-          `http://localhost:8080/api/productos/${productoEditando.id}`,
+        await api.put(
+          `/productos/${productoEditando.id}`,
           formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`
-            }
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
-        alert("Producto actualizado correctamente");
+        
+        MySwal.fire({
+          icon: 'success',
+          title: 'Producto actualizado',
+          confirmButtonColor: '#3085d6',
+        });
       } else {
-        await axios.post(
-          "http://localhost:8080/api/productos",
+        await api.post(
+          '/productos',
           formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`
-            }
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
-        alert("Producto creado correctamente");
+        
+        MySwal.fire({
+          icon: 'success',
+          title: 'Producto creado',
+          confirmButtonColor: '#3085d6',
+        });
       }
 
       // Resetear estados
@@ -191,8 +300,13 @@ const AdminPanel = () => {
       cargarDatos();
 
     } catch (error) {
-      console.error("Error al guardar producto:", error.response?.data || error.message);
-      alert(`Hubo un error al guardar el producto: ${error.response?.data?.message || error.message}`);
+      console.error("Error al guardar producto:", error);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al guardar producto',
+        confirmButtonColor: '#3085d6',
+      });
     }
   };
 
@@ -229,23 +343,101 @@ const AdminPanel = () => {
   };
 
   const eliminarCategoria = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar esta categoría?")) {
-      await axios.delete(`http://localhost:8080/api/categorias/${id}`, config);
-      cargarDatos();
+    const result = await MySwal.fire({
+      title: '¿Estás seguro?',
+      text: "No podrás revertir esta acción",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/categorias/${id}`);
+        cargarDatos();
+        MySwal.fire({
+          icon: 'success',
+          title: 'Eliminada',
+          text: 'La categoría ha sido eliminada',
+          confirmButtonColor: '#3085d6',
+        });
+      } catch (error) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al eliminar categoría',
+          confirmButtonColor: '#3085d6',
+        });
+      }
     }
   };
 
   const eliminarCaracteristica = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar esta característica?")) {
-      await axios.delete(`http://localhost:8080/api/caracteristicas/${id}`, config);
-      cargarDatos();
+    const result = await MySwal.fire({
+      title: '¿Estás seguro?',
+      text: "No podrás revertir esta acción",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/caracteristicas/${id}`);
+        cargarDatos();
+        MySwal.fire({
+          icon: 'success',
+          title: 'Eliminada',
+          text: 'La característica ha sido eliminada',
+          confirmButtonColor: '#3085d6',
+        });
+      } catch (error) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al eliminar característica',
+          confirmButtonColor: '#3085d6',
+        });
+      }
     }
   };
 
   const eliminarProducto = async (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
-      await axios.delete(`http://localhost:8080/api/productos/${id}`, config);
-      cargarDatos();
+    const result = await MySwal.fire({
+      title: '¿Estás seguro?',
+      text: "No podrás revertir esta acción",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/productos/${id}`);
+        cargarDatos();
+        MySwal.fire({
+          icon: 'success',
+          title: 'Eliminado',
+          text: 'El producto ha sido eliminado',
+          confirmButtonColor: '#3085d6',
+        });
+      } catch (error) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al eliminar producto',
+          confirmButtonColor: '#3085d6',
+        });
+      }
     }
   };
 
@@ -327,6 +519,66 @@ const AdminPanel = () => {
         </div>
       )}
 
+      <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
+        <FaCogs /> Características
+      </h2>
+
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Icono (ej: FaParking)</th>
+              <th className={styles.smallColumn}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {caracteristicas.map(car => {
+              const IconComponent = getIconComponent(car.icono);
+              return (
+                <tr key={car.id} className={styles.tableRow}>
+                  <td>{car.nombre}</td>
+                  <td className={styles.iconCell}>
+                    {IconComponent ? <IconComponent className={styles.icon} /> : <FaIcons.FaQuestionCircle className={styles.icon} />}
+                    <span>{car.icono}</span>
+                  </td>
+                  <td className={styles.deleteCell}>
+                    <button onClick={() => eliminarCaracteristica(car.id)} className={styles.btnEliminar} title="Eliminar">
+                      <FaTrash />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className={styles.formRow}>
+              <td>
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={nuevaCaracteristica.nombre}
+                  onChange={e => setNuevaCaracteristica({ ...nuevaCaracteristica, nombre: e.target.value })}
+                  className={styles.inputField}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  placeholder="Icono (ej: FaParking)"
+                  value={nuevaCaracteristica.icono}
+                  onChange={e => setNuevaCaracteristica({ ...nuevaCaracteristica, icono: e.target.value })}
+                  className={styles.inputField}
+                />
+              </td>
+              <td>
+                <button onClick={crearCaracteristica} className={styles.btnCrear}>
+                  <FaPlus /> Crear
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <h2><FaBoxOpen /> Productos</h2>
       <div className={styles.productoForm}>
         <h3>{modoEdicion ? "Editar Producto" : "Crear Nuevo Producto"}</h3>
@@ -394,19 +646,22 @@ const AdminPanel = () => {
           <h4>Políticas</h4>
           {nuevoProducto.politicas.map((p, idx) => (
             <div key={idx} className={styles.politicaItem}>
-              <select
-                value={p.tipo || p.titulo}
+              <input
+                list="tiposPolitica"
+                placeholder="Tipo de política"
+                value={p.tipo || ""}
                 onChange={e => {
                   const updated = [...nuevoProducto.politicas];
                   updated[idx].tipo = e.target.value;
                   setNuevoProducto({ ...nuevoProducto, politicas: updated });
                 }}
-              >
-                <option value="">Tipo</option>
-                <option value="Normas">Normas</option>
-                <option value="Salud y seguridad">Salud y seguridad</option>
-                <option value="Política de cancelación">Política de cancelación</option>
-              </select>
+              />
+
+              <datalist id="tiposPolitica">
+                <option value="Normas" />
+                <option value="Salud y seguridad" />
+                <option value="Política de cancelación" />
+              </datalist>
               <input
                 type="text"
                 value={p.descripcion}

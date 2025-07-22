@@ -6,10 +6,12 @@ import com.Oscar.Proyecto_Final.model.enums.Rol;
 import com.Oscar.Proyecto_Final.repository.UsuarioRepository;
 import com.Oscar.Proyecto_Final.repository.PasswordResetTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,7 +37,7 @@ public class UsuarioService {
     @Transactional
     public UsuarioDTO cambiarRolUsuario(Long id, Rol nuevoRol) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         usuario.setRol(nuevoRol);
         usuarioRepository.save(usuario);

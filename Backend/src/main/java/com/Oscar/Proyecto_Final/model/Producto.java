@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity
 @Data
@@ -36,19 +36,21 @@ public class Producto {
             joinColumns = @JoinColumn(name = "producto_id"),
             inverseJoinColumns = @JoinColumn(name = "caracteristica_id")
     )
-    private List<Caracteristica> caracteristicas;
+    private List<Caracteristica> caracteristicas = new ArrayList<>();
 
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Imagen> imagenes;
+    private List<Imagen> imagenes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Politica> politicas = new ArrayList<>();
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Valoracion> valoraciones = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
         this.fechaCreacion = LocalDateTime.now();
     }
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Politica> politicas;
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Valoracion> valoraciones;
 
     public void actualizarPoliticas(List<Politica> nuevasPoliticas) {
         this.politicas.clear();
@@ -59,5 +61,4 @@ public class Producto {
             });
         }
     }
-
 }

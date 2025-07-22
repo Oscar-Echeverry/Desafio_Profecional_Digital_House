@@ -1,32 +1,53 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { Alert, Button, Form, Card } from 'react-bootstrap';
+import { Button, Form, Card, Spinner } from 'react-bootstrap';
+import { recuperarPassword } from '../services/api';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import '../styles/Recuperar.css';
+
+const MySwal = withReactContent(Swal);
 
 function Recuperar() {
   const [email, setEmail] = useState('');
-  const [mensaje, setMensaje] = useState('');
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMensaje('');
-    setError('');
+    setIsLoading(true);
 
     try {
-      await axios.post(`http://localhost:8080/api/auth/recuperar?email=${email}`);
-      setMensaje('Correo de recuperación enviado. Revisa tu bandeja de entrada.');
+      await recuperarPassword(email);
+      
+      await MySwal.fire({
+        icon: 'success',
+        title: 'Correo enviado',
+        html: `
+          <div style="text-align: left;">
+            <p>Hemos enviado un correo a <strong>${email}</strong> con instrucciones para restablecer tu contraseña.</p>
+            <p style="color: #ff6b6b;">Si no lo ves en tu bandeja de entrada, revisa la carpeta de spam.</p>
+          </div>
+        `,
+        confirmButtonColor: '#3085d6',
+      });
+      
+      setEmail('');
     } catch (err) {
       console.error(err);
-      setError('Error al enviar el correo. Verifica el email.');
+      await MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.response?.data?.message || 'No se pudo enviar el correo. Verifica el email.',
+        confirmButtonColor: '#3085d6',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-      <Card className="p-4 shadow" style={{ maxWidth: '500px', width: '100%' }}>
+    <div className="recuperar-container">
+      <Card className="recuperar-card">
         <h3 className="text-center mb-4">Recuperar Contraseña</h3>
-        {mensaje && <Alert variant="success">{mensaje}</Alert>}
-        {error && <Alert variant="danger">{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3" controlId="email">
@@ -37,12 +58,29 @@ function Recuperar() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </Form.Group>
-          <Button type="submit" variant="primary" className="w-100">
-            Enviar Correo
+          <Button 
+            type="submit" 
+            variant="primary" 
+            className="w-100"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Enviando...
+              </>
+            ) : 'Enviar Correo'}
           </Button>
         </Form>
+
+        <div className="text-center mt-3">
+          <a href="/login" className="text-decoration-none">
+            Volver al inicio de sesión
+          </a>
+        </div>
       </Card>
     </div>
   );
